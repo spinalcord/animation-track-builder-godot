@@ -156,8 +156,8 @@ func animation_track(reference_node: Node, reuse_existing: bool = true) -> Anima
 	
 	return self
 
-## Insert a method call key
-func insert_method_key(time: float, method_name: String, args: Array = []) -> AnimationTrackBuilder:
+## Insert a method call key using Callable
+func insert_method_key(time: float, callable: Callable, args: Array = []) -> AnimationTrackBuilder:
 	assert(_current_track_idx >= 0, "No track selected. Call add_*_track() first")
 	assert(_current_track_idx < _animation.get_track_count(), "Track index out of bounds")
 	assert(_animation.track_get_type(_current_track_idx) == Animation.TYPE_METHOD, "Current track is not a method track")
@@ -165,10 +165,13 @@ func insert_method_key(time: float, method_name: String, args: Array = []) -> An
 	assert(is_instance_valid(_current_reference_node), "Reference node is no longer valid")
 	assert(time >= 0.0, "Time must be positive")
 	assert(time <= _animation.length, "Time exceeds animation length")
-	assert(method_name != "", "Method name cannot be empty")
-	assert(_current_reference_node.has_method(method_name), "Method '%s' does not exist on node '%s'" % [method_name, _current_reference_node.name])
+	assert(callable.is_valid(), "Callable is not valid")
 	assert(args != null, "Args cannot be null")
 	assert(args is Array, "Args must be an Array")
+	
+	var method_name = callable.get_method()
+	assert(method_name != "", "Method name cannot be empty")
+	assert(_current_reference_node.has_method(method_name), "Method '%s' does not exist on node '%s'" % [method_name, _current_reference_node.name])
 	
 	var key_count_before = _animation.track_get_key_count(_current_track_idx)
 	

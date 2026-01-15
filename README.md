@@ -17,10 +17,9 @@ In Godot, animations are typically created through the editor using the Animatio
 `AnimationTrackBuilder` lets you define animations entirely in code with a clean, fluent API. Every operation is validated with assertions, so you catch errors immediately rather than discovering them during gameplay.
 
 ```gdscript
-var builder = AnimationTrackBuilder.from_player(anim_player, "player_jump")
-builder.method_track(self).insert_method_key(0.1, "jump", []) # self => script owner
+    var builder = AnimationTrackBuilder.from_player(anim_player, "player_jump")
+builder.method_track(self).insert_method_key(0.1, jump, []) # self => script owner
 ```
-
 ## Features
 
 - **Type-Safe**: Uses node references instead of string paths - no more typos
@@ -52,8 +51,8 @@ func _ready():
     
     # Add a method track that calls your functions
     builder.method_track(self) \
-        .insert_method_key(0.5, "play_sound", []) \
-        .insert_method_key(1.0, "spawn_effect", ["explosion"])
+        .insert_method_key(0.5, play_sound, []) \
+        .insert_method_key(1.0, spawn_effect, ["explosion"])
 ```
 
 ### Animating Properties
@@ -77,7 +76,7 @@ func _ready():
     var builder = AnimationTrackBuilder.create_new(anim_player, "custom_anim", 2.0)
     
     builder.method_track(self) \
-        .insert_method_key(1.0, "do_something")
+        .insert_method_key(1.0, do_something)
 ```
 
 ### Multiple Tracks
@@ -88,8 +87,8 @@ func _ready():
     
     # Add method track
     builder.method_track(self) \
-        .insert_method_key(0.5, "step_one") \
-        .insert_method_key(1.0, "step_two")
+        .insert_method_key(0.5, step_one) \
+        .insert_method_key(1.0, step_two)
     
     # Add value track for a different node
     var sprite = $Sprite2D
@@ -150,9 +149,9 @@ Adds an animation playback track. Node must be an AnimationPlayer.
 
 ### Key Insertion Methods
 
-#### `insert_method_key(time: float, method_name: String, args: Array = []) -> AnimationTrackBuilder`
+#### `insert_method_key(time: float, callable: Callable, args: Array = []) -> AnimationTrackBuilder`
 
-Inserts a method call at the specified time. **Validates that the method exists on the reference node.**
+Inserts a method call at the specified time. **Validates that the callable is valid and the method exists on the reference node.**
 
 #### `insert_value_key(time: float, value: Variant) -> AnimationTrackBuilder`
 
@@ -222,9 +221,9 @@ func setup_jump_animation():
     
     # Method calls during jump
     builder.method_track(self) \
-        .insert_method_key(0.0, "on_jump_start") \
-        .insert_method_key(0.25, "on_jump_peak") \
-        .insert_method_key(0.5, "on_jump_land")
+        .insert_method_key(0.0, on_jump_start) \
+        .insert_method_key(0.25, on_jump_peak) \
+        .insert_method_key(0.5, on_jump_land)
     
     # Animate sprite position
     builder.value_track(sprite, "position") \
