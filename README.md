@@ -1,6 +1,6 @@
 # AnimationTrackBuilder
 
-A type-safe helper GDScript class for creating AnimationPlayer tracks programmatically in Godot.
+A more type-safe approach helper GDScript class for creating AnimationPlayer tracks programmatically in Godot.
 
 ## The Problem
 
