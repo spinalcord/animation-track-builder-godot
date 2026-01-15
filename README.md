@@ -18,7 +18,7 @@ In Godot, animations are typically created through the editor using the Animatio
 
 ```gdscript
 var builder = AnimationTrackBuilder.from_player(anim_player, "player_jump")
-builder.add_method_track(self).insert_method_key(0.1, "jump", []) # self => script owner
+builder.method_track(self).insert_method_key(0.1, "jump", []) # self => script owner
 ```
 
 ## Features
@@ -37,6 +37,9 @@ builder.add_method_track(self).insert_method_key(0.1, "jump", []) # self => scri
 
 ## Quick Start
 
+> [!WARNING]
+> **AnimationTree Filter Compatibility**: When using an AnimationTree with blend nodes that have filters enabled, you must call `AnimationTrackBuilder.prevent_track_overwrite()` for each affected node. Without this, method tracks will be filtered out and their function calls won't execute. This is a general Godot requirement when working with AnimationTree filters, not specific to this helper class. See the API Reference section for usage details.
+
 ### Basic Method Track
 
 ```gdscript
@@ -48,7 +51,7 @@ func _ready():
     var builder = AnimationTrackBuilder.from_player(anim_player, "my_animation")
     
     # Add a method track that calls your functions
-    builder.add_method_track(self) \
+    builder.method_track(self) \
         .insert_method_key(0.5, "play_sound", []) \
         .insert_method_key(1.0, "spawn_effect", ["explosion"])
 ```
@@ -73,7 +76,7 @@ func _ready():
     # Create a new 2-second animation
     var builder = AnimationTrackBuilder.create_new(anim_player, "custom_anim", 2.0)
     
-    builder.add_method_track(self) \
+    builder.method_track(self) \
         .insert_method_key(1.0, "do_something")
 ```
 
@@ -84,7 +87,7 @@ func _ready():
     var builder = AnimationTrackBuilder.from_player(anim_player, "complex_anim")
     
     # Add method track
-    builder.add_method_track(self) \
+    builder.method_track(self) \
         .insert_method_key(0.5, "step_one") \
         .insert_method_key(1.0, "step_two")
     
@@ -114,9 +117,22 @@ Creates a new animation and returns a builder for it.
 - `animation_name`: Name for the new animation
 - `length`: Duration in seconds (default: 1.0)
 
+#### `prevent_track_overwrite(anim_tree: AnimationTree, raw_path: String, target_node: Node) -> void`
+
+Configures an AnimationTree node to prevent track filtering issues. When using AnimationTree with blend trees, this ensures that specific nodes can animate the target node without being filtered out.
+
+- `anim_tree`: The AnimationTree to configure
+- `raw_path`: Path to the AnimationNode in the blend tree (e.g., "parameters/OneShot")
+- `target_node`: The node that should be allowed to be animated
+
+```gdscript
+# Enable a OneShot node to animate a sprite
+AnimationTrackBuilder.prevent_track_overwrite(anim_tree, "parameters/OneShot/active", sprite)
+```
+
 ### Track Creation Methods
 
-#### `add_method_track(reference_node: Node) -> AnimationTrackBuilder`
+#### `method_track(reference_node: Node) -> AnimationTrackBuilder`
 
 Adds a method call track for the specified node.
 
@@ -205,7 +221,7 @@ func setup_jump_animation():
     var builder = AnimationTrackBuilder.create_new(anim_player, "jump", 0.5)
     
     # Method calls during jump
-    builder.add_method_track(self) \
+    builder.method_track(self) \
         .insert_method_key(0.0, "on_jump_start") \
         .insert_method_key(0.25, "on_jump_peak") \
         .insert_method_key(0.5, "on_jump_land")

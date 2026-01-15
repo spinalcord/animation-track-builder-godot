@@ -17,14 +17,50 @@ func _init(animation: Animation, base_node: Node) -> void:
 	_animation = animation
 	_base_node = base_node
 
-## Add a method call track
-func add_method_track(reference_node: Node) -> AnimationTrackBuilder:
+## Find existing track by path and type, returns -1 if not found
+func _find_track(target_path: NodePath, track_type: Animation.TrackType) -> int:
+	for i in range(_animation.get_track_count()):
+		if _animation.track_get_path(i) == target_path and _animation.track_get_type(i) == track_type:
+			return i
+	return -1
+
+## Remove all tracks for a specific node and type
+func remove_tracks_for_node(reference_node: Node, track_type: Animation.TrackType) -> AnimationTrackBuilder:
+	assert(reference_node != null, "Reference node cannot be null")
+	assert(is_instance_valid(reference_node), "Reference node is not a valid instance")
+	
+	var target_path := _base_node.get_path_to(reference_node)
+	
+	# Remove in reverse order to avoid index shifting issues
+	for i in range(_animation.get_track_count() - 1, -1, -1):
+		var track_path = _animation.track_get_path(i)
+		# For value tracks, check if path starts with target_path
+		if track_type == Animation.TYPE_VALUE:
+			var track_path_str = str(track_path)
+			var target_path_str = str(target_path)
+			if track_path_str.begins_with(target_path_str + ":"):
+				if _animation.track_get_type(i) == track_type:
+					_animation.remove_track(i)
+		else:
+			if track_path == target_path and _animation.track_get_type(i) == track_type:
+				_animation.remove_track(i)
+	
+	return self
+
+## Add a method call track (reuses existing track if found)
+func method_track(reference_node: Node, reuse_existing: bool = true) -> AnimationTrackBuilder:
 	assert(reference_node != null, "Reference node cannot be null")
 	assert(is_instance_valid(reference_node), "Reference node is not a valid instance")
 	
 	var target_path := _base_node.get_path_to(reference_node)
 	assert(target_path != NodePath(), "Could not calculate path to reference node")
 	assert(!target_path.is_empty(), "Calculated path is empty")
+	
+	if reuse_existing:
+		_current_track_idx = _find_track(target_path, Animation.TYPE_METHOD)
+		if _current_track_idx >= 0:
+			_current_reference_node = reference_node
+			return self
 	
 	_current_track_idx = _animation.add_track(Animation.TYPE_METHOD)
 	assert(_current_track_idx >= 0, "Failed to add method track")
@@ -36,8 +72,8 @@ func add_method_track(reference_node: Node) -> AnimationTrackBuilder:
 	
 	return self
 
-## Add a property value track
-func add_value_track(reference_node: Node, property: String) -> AnimationTrackBuilder:
+## Add a property value track (reuses existing track if found)
+func add_value_track(reference_node: Node, property: String, reuse_existing: bool = true) -> AnimationTrackBuilder:
 	assert(reference_node != null, "Reference node cannot be null")
 	assert(is_instance_valid(reference_node), "Reference node is not a valid instance")
 	assert(property != "", "Property name cannot be empty")
@@ -50,10 +86,17 @@ func add_value_track(reference_node: Node, property: String) -> AnimationTrackBu
 	assert(target_path != NodePath(), "Could not calculate path to reference node")
 	assert(!target_path.is_empty(), "Calculated path is empty")
 	
+	var full_path = NodePath(str(target_path) + ":" + property)
+	
+	if reuse_existing:
+		_current_track_idx = _find_track(full_path, Animation.TYPE_VALUE)
+		if _current_track_idx >= 0:
+			_current_reference_node = reference_node
+			return self
+	
 	_current_track_idx = _animation.add_track(Animation.TYPE_VALUE)
 	assert(_current_track_idx >= 0, "Failed to add value track")
 	
-	var full_path = NodePath(str(target_path) + ":" + property)
 	_animation.track_set_path(_current_track_idx, full_path)
 	assert(_animation.track_get_path(_current_track_idx) == full_path, "Failed to set track path")
 	
@@ -61,8 +104,8 @@ func add_value_track(reference_node: Node, property: String) -> AnimationTrackBu
 	
 	return self
 
-## Add an audio stream track
-func add_audio_track(reference_node: Node) -> AnimationTrackBuilder:
+## Add an audio stream track (reuses existing track if found)
+func add_audio_track(reference_node: Node, reuse_existing: bool = true) -> AnimationTrackBuilder:
 	assert(reference_node != null, "Reference node cannot be null")
 	assert(is_instance_valid(reference_node), "Reference node is not a valid instance")
 	assert(reference_node is AudioStreamPlayer or reference_node is AudioStreamPlayer2D or reference_node is AudioStreamPlayer3D, "Reference node must be an AudioStreamPlayer variant")
@@ -70,6 +113,12 @@ func add_audio_track(reference_node: Node) -> AnimationTrackBuilder:
 	var target_path := _base_node.get_path_to(reference_node)
 	assert(target_path != NodePath(), "Could not calculate path to reference node")
 	assert(!target_path.is_empty(), "Calculated path is empty")
+	
+	if reuse_existing:
+		_current_track_idx = _find_track(target_path, Animation.TYPE_AUDIO)
+		if _current_track_idx >= 0:
+			_current_reference_node = reference_node
+			return self
 	
 	_current_track_idx = _animation.add_track(Animation.TYPE_AUDIO)
 	assert(_current_track_idx >= 0, "Failed to add audio track")
@@ -81,8 +130,8 @@ func add_audio_track(reference_node: Node) -> AnimationTrackBuilder:
 	
 	return self
 
-## Add an animation playback track
-func add_animation_track(reference_node: Node) -> AnimationTrackBuilder:
+## Add an animation playback track (reuses existing track if found)
+func add_animation_track(reference_node: Node, reuse_existing: bool = true) -> AnimationTrackBuilder:
 	assert(reference_node != null, "Reference node cannot be null")
 	assert(is_instance_valid(reference_node), "Reference node is not a valid instance")
 	assert(reference_node is AnimationPlayer, "Reference node must be an AnimationPlayer")
@@ -90,6 +139,12 @@ func add_animation_track(reference_node: Node) -> AnimationTrackBuilder:
 	var target_path := _base_node.get_path_to(reference_node)
 	assert(target_path != NodePath(), "Could not calculate path to reference node")
 	assert(!target_path.is_empty(), "Calculated path is empty")
+	
+	if reuse_existing:
+		_current_track_idx = _find_track(target_path, Animation.TYPE_ANIMATION)
+		if _current_track_idx >= 0:
+			_current_reference_node = reference_node
+			return self
 	
 	_current_track_idx = _animation.add_track(Animation.TYPE_ANIMATION)
 	assert(_current_track_idx >= 0, "Failed to add animation track")
@@ -123,7 +178,7 @@ func insert_method_key(time: float, method_name: String, args: Array = []) -> An
 	})
 	
 	assert(key_idx >= 0, "Failed to insert method key")
-	assert(_animation.track_get_key_count(_current_track_idx) > key_count_before, "Key was not added to track")
+	assert(_animation.track_get_key_count(_current_track_idx) > key_count_before, "Key was not added to track. BEAWARE don't use the same TIME in the same Animation.")
 	
 	return self
 
@@ -263,6 +318,42 @@ static func from_player(anim_player: AnimationPlayer, animation_name: String, ba
 	
 	return AnimationTrackBuilder.new(animation, node_base)
 
+static func prevent_track_overwrite(anim_tree: AnimationTree, raw_path: String, target_node: Node) -> void:
+	if not is_instance_valid(anim_tree) or not is_instance_valid(target_node):
+		return
+	
+	# 1. Clean up path: remove "parameters/" if present
+	var internal_path = raw_path.trim_prefix("parameters/")
+	
+	# 2. Remove property suffix (e.g. "/active", "/request") if present
+	if internal_path.contains("/"):
+		var last_slash_idx = internal_path.rfind("/")
+		var potential_property = internal_path.substr(last_slash_idx + 1)
+		# Check if it looks like a property name (not a node name)
+		if potential_property in ["active", "request", "blend_amount", "scale"]:
+			internal_path = internal_path.substr(0, last_slash_idx)
+	
+	# 3. Calculate path to target object
+	var tree_root_obj = anim_tree.get_node(anim_tree.root_node)
+	if not tree_root_obj: return
+	var path_to_allow = tree_root_obj.get_path_to(target_node)
+	
+	# 4. Get node (now without "parameters/" and without property suffix)
+	var specific_node = anim_tree.tree_root.get_node(internal_path)
+	
+	# Assert that the node exists and is an AnimationNode
+	assert(specific_node != null, "Could not find AnimationNode: " + internal_path)
+	assert(specific_node is AnimationNode, "Node '" + internal_path + "' is not an AnimationNode")
+	
+	if specific_node and specific_node is AnimationNode:
+		if "filter_enabled" in specific_node:
+			if not specific_node.filter_enabled:
+				specific_node.filter_enabled = true
+			
+			specific_node.set_filter_path(path_to_allow, true)
+		else:
+			push_warning("Node '" + internal_path + "' has no filter.")
+
 ## Static helper to create builder with new animation
 static func create_new(anim_player: AnimationPlayer, animation_name: String, length: float = 1.0, base_node: Node = null) -> AnimationTrackBuilder:
 	assert(anim_player != null, "AnimationPlayer cannot be null")
@@ -286,3 +377,4 @@ static func create_new(anim_player: AnimationPlayer, animation_name: String, len
 	assert(is_instance_valid(node_base), "Base node is not a valid instance")
 	
 	return AnimationTrackBuilder.new(animation, node_base)
+
