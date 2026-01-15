@@ -63,7 +63,7 @@ func _ready():
     var builder = AnimationTrackBuilder.from_player(anim_player, "fade_in")
     
     # Animate the modulate property
-    builder.add_value_track(self, "modulate") \
+    builder.value_track(self, "modulate") \
         .set_interpolation(Animation.INTERPOLATION_LINEAR) \
         .insert_value_key(0.0, Color(1, 1, 1, 0)) \
         .insert_value_key(1.0, Color(1, 1, 1, 1))
@@ -93,7 +93,7 @@ func _ready():
     
     # Add value track for a different node
     var sprite = $Sprite2D
-    builder.add_value_track(sprite, "position") \
+    builder.value_track(sprite, "position") \
         .insert_value_key(0.0, Vector2(0, 0)) \
         .insert_value_key(1.0, Vector2(100, 0))
 ```
@@ -136,15 +136,15 @@ AnimationTrackBuilder.prevent_track_overwrite(anim_tree, "parameters/OneShot/act
 
 Adds a method call track for the specified node.
 
-#### `add_value_track(reference_node: Node, property: String) -> AnimationTrackBuilder`
+#### `value_track(reference_node: Node, property: String) -> AnimationTrackBuilder`
 
 Adds a property animation track. Validates that the property exists on the node.
 
-#### `add_audio_track(reference_node: Node) -> AnimationTrackBuilder`
+#### `audio_track(reference_node: Node) -> AnimationTrackBuilder`
 
 Adds an audio track. Node must be an AudioStreamPlayer variant.
 
-#### `add_animation_track(reference_node: Node) -> AnimationTrackBuilder`
+#### `animation_track(reference_node: Node) -> AnimationTrackBuilder`
 
 Adds an animation playback track. Node must be an AnimationPlayer.
 
@@ -227,14 +227,14 @@ func setup_jump_animation():
         .insert_method_key(0.5, "on_jump_land")
     
     # Animate sprite position
-    builder.add_value_track(sprite, "position") \
+    builder.value_track(sprite, "position") \
         .set_interpolation(Animation.INTERPOLATION_CUBIC) \
         .insert_value_key(0.0, Vector2(0, 0)) \
         .insert_value_key(0.25, Vector2(0, -50)) \
         .insert_value_key(0.5, Vector2(0, 0))
     
     # Squash and stretch
-    builder.add_value_track(sprite, "scale") \
+    builder.value_track(sprite, "scale") \
         .insert_value_key(0.0, Vector2(1, 1)) \
         .insert_value_key(0.1, Vector2(0.8, 1.2)) \
         .insert_value_key(0.25, Vector2(1, 1)) \
@@ -243,7 +243,7 @@ func setup_jump_animation():
     
     # Play jump sound
     var jump_sound = preload("res://sounds/jump.wav")
-    builder.add_audio_track(audio) \
+    builder.audio_track(audio) \
         .insert_audio_key(0.0, jump_sound)
 
 func on_jump_start():
