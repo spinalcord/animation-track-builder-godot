@@ -73,7 +73,7 @@ func method_track(reference_node: Node, reuse_existing: bool = true) -> Animatio
 	return self
 
 ## Add a property value track (reuses existing track if found)
-func add_value_track(reference_node: Node, property: String, reuse_existing: bool = true) -> AnimationTrackBuilder:
+func value_track(reference_node: Node, property: String, reuse_existing: bool = true) -> AnimationTrackBuilder:
 	assert(reference_node != null, "Reference node cannot be null")
 	assert(is_instance_valid(reference_node), "Reference node is not a valid instance")
 	assert(property != "", "Property name cannot be empty")
@@ -105,7 +105,7 @@ func add_value_track(reference_node: Node, property: String, reuse_existing: boo
 	return self
 
 ## Add an audio stream track (reuses existing track if found)
-func add_audio_track(reference_node: Node, reuse_existing: bool = true) -> AnimationTrackBuilder:
+func audio_track(reference_node: Node, reuse_existing: bool = true) -> AnimationTrackBuilder:
 	assert(reference_node != null, "Reference node cannot be null")
 	assert(is_instance_valid(reference_node), "Reference node is not a valid instance")
 	assert(reference_node is AudioStreamPlayer or reference_node is AudioStreamPlayer2D or reference_node is AudioStreamPlayer3D, "Reference node must be an AudioStreamPlayer variant")
@@ -131,7 +131,7 @@ func add_audio_track(reference_node: Node, reuse_existing: bool = true) -> Anima
 	return self
 
 ## Add an animation playback track (reuses existing track if found)
-func add_animation_track(reference_node: Node, reuse_existing: bool = true) -> AnimationTrackBuilder:
+func animation_track(reference_node: Node, reuse_existing: bool = true) -> AnimationTrackBuilder:
 	assert(reference_node != null, "Reference node cannot be null")
 	assert(is_instance_valid(reference_node), "Reference node is not a valid instance")
 	assert(reference_node is AnimationPlayer, "Reference node must be an AnimationPlayer")
