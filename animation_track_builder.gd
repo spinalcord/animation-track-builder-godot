@@ -173,15 +173,25 @@ func insert_method_key(time: float, callable: Callable, args: Array = []) -> Ani
 	assert(method_name != "", "Method name cannot be empty")
 	assert(_current_reference_node.has_method(method_name), "Method '%s' does not exist on node '%s'" % [method_name, _current_reference_node.name])
 	
-	var key_count_before = _animation.track_get_key_count(_current_track_idx)
-	
-	var key_idx = _animation.track_insert_key(_current_track_idx, time, {
+	var key_data = {
 		"method": method_name,
 		"args": args
-	})
+	}
 	
+	# Generate unique hash for this specific key
+	var key_hash = _generate_key_hash(time, key_data)
+	
+	# Check if this exact key already exists
+	var existing_key_idx = _find_key_by_hash(key_hash)
+	if existing_key_idx >= 0:
+		# Key already exists, skip insertion (idempotent operation)
+		return self
+	
+	var key_idx = _animation.track_insert_key(_current_track_idx, time, key_data)
 	assert(key_idx >= 0, "Failed to insert method key")
-	assert(_animation.track_get_key_count(_current_track_idx) > key_count_before, "Key was not added to track. BEAWARE don't use the same TIME in the same Animation.")
+	
+	# Store hash metadata for future lookups
+	_store_key_hash(key_idx, key_hash)
 	
 	return self
 
@@ -193,12 +203,18 @@ func insert_value_key(time: float, value: Variant) -> AnimationTrackBuilder:
 	assert(time >= 0.0, "Time must be positive")
 	assert(time <= _animation.length, "Time exceeds animation length")
 	
-	var key_count_before = _animation.track_get_key_count(_current_track_idx)
+	# Generate unique hash
+	var key_hash = _generate_key_hash(time, value)
+	
+	# Check if this exact key already exists
+	var existing_key_idx = _find_key_by_hash(key_hash)
+	if existing_key_idx >= 0:
+		return self
 	
 	var key_idx = _animation.track_insert_key(_current_track_idx, time, value)
-	
 	assert(key_idx >= 0, "Failed to insert value key")
-	assert(_animation.track_get_key_count(_current_track_idx) > key_count_before, "Key was not added to track")
+	
+	_store_key_hash(key_idx, key_hash)
 	
 	return self
 
@@ -214,11 +230,23 @@ func insert_audio_key(time: float, stream: AudioStream, start_offset: float = 0.
 	assert(start_offset >= 0.0, "Start offset must be positive")
 	assert(end_offset >= 0.0, "End offset must be positive")
 	
-	var key_count_before = _animation.track_get_key_count(_current_track_idx)
+	# Generate unique hash (use stream resource path for uniqueness)
+	var key_hash = _generate_key_hash(time, {
+		"stream_path": stream.resource_path,
+		"start_offset": start_offset,
+		"end_offset": end_offset
+	})
+	
+	var existing_key_idx = _find_key_by_hash(key_hash)
+	if existing_key_idx >= 0:
+		return self
 	
 	_animation.audio_track_insert_key(_current_track_idx, time, stream, start_offset, end_offset)
 	
-	assert(_animation.track_get_key_count(_current_track_idx) > key_count_before, "Audio key was not added to track")
+	# Note: We can't get the key_idx from audio_track_insert_key, so we find it
+	var key_idx = _animation.track_find_key(_current_track_idx, time, Animation.FIND_MODE_EXACT)
+	if key_idx >= 0:
+		_store_key_hash(key_idx, key_hash)
 	
 	return self
 
@@ -235,13 +263,59 @@ func insert_animation_key(time: float, animation_name: String) -> AnimationTrack
 	assert(animation_name != "", "Animation name cannot be empty")
 	assert(_current_reference_node.has_animation(animation_name), "Animation '%s' does not exist in AnimationPlayer" % animation_name)
 	
-	var key_count_before = _animation.track_get_key_count(_current_track_idx)
+	var key_hash = _generate_key_hash(time, animation_name)
+	
+	var existing_key_idx = _find_key_by_hash(key_hash)
+	if existing_key_idx >= 0:
+		return self
 	
 	_animation.animation_track_insert_key(_current_track_idx, time, animation_name)
 	
-	assert(_animation.track_get_key_count(_current_track_idx) > key_count_before, "Animation key was not added to track")
+	var key_idx = _animation.track_find_key(_current_track_idx, time, Animation.FIND_MODE_EXACT)
+	if key_idx >= 0:
+		_store_key_hash(key_idx, key_hash)
 	
 	return self
+
+## Hash system for tracking unique keys
+var _key_hashes: Dictionary = {}  # Format: {track_idx: {key_idx: hash}}
+
+## Generate a deterministic hash for a key based on time and value
+func _generate_key_hash(time: float, value: Variant) -> int:
+	# Create a unique string representation
+	var hash_string = "%s_%d_%s" % [
+		_animation.resource_path,
+		_current_track_idx,
+		str(time) + str(value)
+	]
+	return hash_string.hash()
+
+## Find key index by hash
+func _find_key_by_hash(target_hash: int) -> int:
+	if not _key_hashes.has(_current_track_idx):
+		return -1
+	
+	var track_hashes = _key_hashes[_current_track_idx]
+	for key_idx in track_hashes:
+		if track_hashes[key_idx] == target_hash:
+			return key_idx
+	
+	return -1
+
+## Store hash for a key
+func _store_key_hash(key_idx: int, hash_value: int) -> void:
+	if not _key_hashes.has(_current_track_idx):
+		_key_hashes[_current_track_idx] = {}
+	
+	_key_hashes[_current_track_idx][key_idx] = hash_value
+
+## Clear hash cache for current track (useful when removing track)
+func clear_track_hashes() -> AnimationTrackBuilder:
+	if _current_track_idx >= 0 and _key_hashes.has(_current_track_idx):
+		_key_hashes.erase(_current_track_idx)
+	return self
+
+
 
 ## Set interpolation type for current track
 func set_interpolation(interpolation: Animation.InterpolationType) -> AnimationTrackBuilder:
@@ -283,6 +357,9 @@ func remove_current_track() -> AnimationTrackBuilder:
 	
 	var track_count_before = _animation.get_track_count()
 	
+	# Clear hash cache before removing
+	clear_track_hashes()
+	
 	_animation.remove_track(_current_track_idx)
 	
 	assert(_animation.get_track_count() == track_count_before - 1, "Track was not removed")
@@ -291,7 +368,6 @@ func remove_current_track() -> AnimationTrackBuilder:
 	_current_reference_node = null
 	
 	return self
-
 ## Get the animation object
 func get_animation() -> Animation:
 	return _animation
