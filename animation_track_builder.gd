@@ -171,7 +171,6 @@ func insert_method_key(time: float, callable: Callable, args: Array = []) -> Ani
 	
 	var method_name = callable.get_method()
 	assert(method_name != "", "Method name cannot be empty")
-	assert(_current_reference_node.has_method(method_name), "Method '%s' does not exist on node '%s'" % [method_name, _current_reference_node.name])
 	
 	var key_data = {
 		"method": method_name,
