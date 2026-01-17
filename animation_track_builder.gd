@@ -446,7 +446,15 @@ static func create_new(anim_player: AnimationPlayer, animation_name: String, len
 	animation.length = length
 	assert(animation.length == length, "Failed to set animation length")
 	
-	anim_player.add_animation(animation_name, animation)
+	# Godot 4 requires animations to be added to an AnimationLibrary
+	var library: AnimationLibrary
+	if anim_player.has_animation_library(""):
+		library = anim_player.get_animation_library("")
+	else:
+		library = AnimationLibrary.new()
+		anim_player.add_animation_library("", library)
+
+	library.add_animation(animation_name, animation)
 	assert(anim_player.has_animation(animation_name), "Failed to add animation to AnimationPlayer")
 	
 	# Use AnimationPlayer's parent as base node if not specified
