@@ -81,7 +81,6 @@ func value_track(reference_node: Node, property: String, reuse_existing: bool = 
 	assert(!property.contains("/"), "Property should not contain '/' separator")
 	assert(!property.begins_with("."), "Property should not start with '.'")
 	assert(property in reference_node, "Property '%s' does not exist on node '%s'" % [property, reference_node.name])
-	
 	var target_path := _base_node.get_path_to(reference_node)
 	assert(target_path != NodePath(), "Could not calculate path to reference node")
 	assert(!target_path.is_empty(), "Calculated path is empty")
@@ -106,6 +105,7 @@ func value_track(reference_node: Node, property: String, reuse_existing: bool = 
 
 ## Add an audio stream track (reuses existing track if found)
 func audio_track(reference_node: Node, reuse_existing: bool = true) -> AnimationTrackBuilder:
+	
 	assert(reference_node != null, "Reference node cannot be null")
 	assert(is_instance_valid(reference_node), "Reference node is not a valid instance")
 	assert(reference_node is AudioStreamPlayer or reference_node is AudioStreamPlayer2D or reference_node is AudioStreamPlayer3D, "Reference node must be an AudioStreamPlayer variant")
